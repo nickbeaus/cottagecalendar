@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cottage Calendar</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.5"></script>
+
+    <style>
+        :root {
+            --primary-blue: #3788d8; --primary-green: #28a745; --primary-purple: #6f42c1;
+            --bg-color: #f3f4f6; --card-bg: #ffffff; --text-main: #1f2937;
+            --text-muted: #6b7280; --border-color: #e5e7eb;
+            --btn-bg: #1f2937; --btn-bg-hover: #000000; --btn-text: #ffffff;
+            --hover-bg: #f3f4f6; --past-bg: #f9fafb; --past-text: #c0c4cc;
+            --info-bg: #eff6ff; --info-border: #bfdbfe; --info-text: #1e3a8a; --info-btn-bg: #ffffff; --info-btn-hover: #dbeafe;
+            --created-bg: #d4edda; --created-text: #155724;
+            --updated-bg: #cce5ff; --updated-text: #004085;
+            --canceled-bg: #f8d7da; --canceled-text: #721c24;
+            --danger: #d33;
+            color-scheme: light;
+
+            /* FullCalendar's own theme hooks */
+            --fc-border-color: var(--border-color);
+            --fc-page-bg-color: var(--card-bg);
+            --fc-neutral-bg-color: var(--bg-color);
+            --fc-list-event-hover-bg-color: var(--hover-bg);
+            --fc-today-bg-color: rgba(255, 220, 40, 0.15);
+            --fc-button-bg-color: #2c3e50; --fc-button-border-color: #2c3e50;
+            --fc-button-hover-bg-color: #1e2b37; --fc-button-hover-border-color: #1a252f;
+            --fc-button-active-bg-color: #1a252f; --fc-button-active-border-color: #151e27;
+        }
+
+        /* Dark mode follows the device setting */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary-blue: #5aa2e8; --primary-green: #3fbf5f; --primary-purple: #9a73e0;
+                --bg-color: #111827; --card-bg: #1f2937; --text-main: #f3f4f6;
+                --text-muted: #9ca3af; --border-color: #374151;
+                --btn-bg: #f3f4f6; --btn-bg-hover: #ffffff; --btn-text: #111827;
+                --hover-bg: #273445; --past-bg: #18212e; --past-text: #4b5563;
+                --info-bg: #172554; --info-border: #1e40af; --info-text: #dbeafe; --info-btn-bg: #1e3a8a; --info-btn-hover: #1e40af;
+                --created-bg: #14532d; --created-text: #bbf7d0;
+                --updated-bg: #1e3a8a; --updated-text: #bfdbfe;
+                --canceled-bg: #7f1d1d; --canceled-text: #fecaca;
+                --danger: #f87171;
+                color-scheme: dark;
+                --fc-today-bg-color: rgba(250, 204, 21, 0.12);
+                --fc-button-bg-color: #374151; --fc-button-border-color: #374151;
+                --fc-button-hover-bg-color: #4b5563; --fc-button-hover-border-color: #4b5563;
+                --fc-button-active-bg-color: #111827; --fc-button-active-border-color: #111827;
+            }
+            .sidebar, .calendar-container, .changelog-container { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.4); }
+            .fc .fc-list-day-cushion { background: var(--bg-color); }
+
+            /* SweetAlert2 popups */
+            .swal2-popup:not(.swal2-toast) { background: var(--card-bg); color: var(--text-main); }
+            .swal2-title, .swal2-html-container { color: var(--text-main) !important; }
+            .swal2-input, .swal2-select { background-color: var(--bg-color) !important; color: var(--text-main) !important; border-color: var(--border-color) !important; }
+            .swal2-validation-message { background: var(--bg-color) !important; color: var(--text-main) !important; }
+            .swal2-toast { background: var(--card-bg) !important; color: var(--text-main) !important; }
+            .swal2-icon.swal2-success [class^=swal2-success-circular-line], .swal2-icon.swal2-success .swal2-success-fix { background-color: var(--card-bg) !important; }
+        }
+
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 40px 20px; }
+        .app-container { display: flex; gap: 24px; max-width: 1200px; margin: 0 auto; align-items: flex-start; }
+
+        .sidebar { flex: 0 0 320px; background: var(--card-bg); padding: 24px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .sidebar h2 { margin-top: 0; font-size: 1.5rem; margin-bottom: 8px; }
+        .sidebar p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 12px; }
+
+        .btn-add { width: 100%; background: var(--btn-bg); color: var(--btn-text); border: none; padding: 12px; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 20px; }
+        .btn-add:hover { background: var(--btn-bg-hover); }
+        .btn-secondary { width: 100%; background: transparent; color: var(--text-main); border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; font: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        .btn-secondary:hover { background: var(--hover-bg); }
+
+        /* Past days: grayed out, can't start a booking there */
+        .fc .fc-daygrid-day.fc-day-past { background-color: var(--past-bg); }
+        .fc .fc-daygrid-day.fc-day-past .fc-daygrid-day-number { color: var(--past-text); }
+        .fc .fc-daygrid-day.fc-day-past { cursor: not-allowed; }
+        .fc .fc-daygrid-day:not(.fc-day-past) { cursor: pointer; }
+
+        /* Calendar event content: cottage badge + name */
+        .ev-content { display: flex; align-items: center; gap: 4px; overflow: hidden; padding: 0 2px; }
+        .ev-badge { flex-shrink: 0; font-size: 0.65rem; font-weight: 700; background: rgba(255,255,255,0.3); border-radius: 3px; padding: 0 4px; line-height: 1.4; }
+        .ev-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ev-tag { font-size: 0.8rem; color: var(--text-muted); margin-left: 6px; }
+
+        /* Loading pill over the calendar */
+        .calendar-container { position: relative; }
+        .calendar-loading { display: none; position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 5; background: var(--btn-bg); color: var(--btn-text); font-size: 0.8rem; font-weight: 600; padding: 6px 14px; border-radius: 999px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+        .calendar-loading.active { display: block; }
+
+        /* Subscribe popup */
+        .sub-url { display: flex; gap: 8px; margin: 8px 0 16px 0; }
+        .sub-url input { flex: 1; min-width: 0; font: inherit; font-size: 0.85rem; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-color); color: var(--text-main); }
+        .sub-url button { font: inherit; font-size: 0.85rem; font-weight: 600; padding: 8px 12px; border: none; border-radius: 6px; background: var(--primary-blue); color: #fff; cursor: pointer; }
+        .sub-steps { text-align: left; font-size: 0.9rem; line-height: 1.6; color: var(--text-main); }
+        .sub-steps h4 { margin: 14px 0 4px 0; font-size: 0.95rem; }
+        .sub-steps ol { margin: 0; padding-left: 20px; }
+        .sub-steps p { color: var(--text-muted); font-size: 0.85rem; margin: 10px 0 0 0; }
+
+        .calendar-container { flex: 1; background: var(--card-bg); padding: 24px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); min-width: 0; }
+        .legend { display: flex; gap: 15px; margin-top: 25px; padding-top: 15px; border-top: 1px solid var(--border-color); }
+        .legend-item { display: flex; align-items: center; font-size: 0.85rem; color: var(--text-muted); }
+        .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; }
+        .dot.blue { background-color: var(--primary-blue); }
+        .dot.green { background-color: var(--primary-green); }
+        .dot.purple { background-color: var(--primary-purple); }
+
+        .swal-form-row { display: flex; flex-direction: column; text-align: left; margin: 10px auto; width: 85%; }
+        .swal-form-row label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+        .swal2-input.custom, .swal2-select.custom { width: 100% !important; margin: 0 !important; box-sizing: border-box; font-size: 16px !important; font-family: inherit; height: 44px; padding: 0 12px; border: 1px solid #d9d9d9; border-radius: 6px; line-height: normal; }
+        /* Drop the browser's native dropdown look (Safari ignores sizing otherwise) and draw a matching chevron */
+        .swal2-select.custom {
+            -webkit-appearance: none; appearance: none;
+            padding-right: 36px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%239ca3af' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 14px center; background-size: 12px 8px;
+            cursor: pointer;
+        }
+
+        .first-click-highlight { background-color: rgba(55, 136, 216, 0.2) !important; border-radius: 4px; }
+
+        .changelog-container { max-width: 1200px; margin: 24px auto 0 auto; background: var(--card-bg); padding: 24px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .changelog-container h3 { margin-top: 0; font-size: 1.2rem; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        .changelog-list { list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto; }
+        /* Three aligned columns: when | badge | what happened (wraps within its own column) */
+        .changelog-list li { display: grid; grid-template-columns: 110px 84px 1fr; column-gap: 14px; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; line-height: 1.5; }
+        .changelog-list li.log-empty { display: block; color: var(--text-muted); }
+        .changelog-list li:last-child { border-bottom: none; }
+        .log-date { color: var(--text-muted); font-size: 0.85rem; white-space: nowrap; }
+        .log-action { display: block; text-align: center; font-weight: 600; padding: 2px 0; border-radius: 4px; font-size: 0.8rem; }
+        .action-Created { background: var(--created-bg); color: var(--created-text); }
+        .action-Updated { background: var(--updated-bg); color: var(--updated-text); }
+        .action-Canceled { background: var(--canceled-bg); color: var(--canceled-text); }
+
+        /* Arrival/departure selection */
+        .selection-banner { display: none; align-items: center; justify-content: space-between; gap: 12px; background: var(--info-bg); border: 1px solid var(--info-border); color: var(--info-text); padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 0.95rem; }
+        .selection-banner.active { display: flex; }
+        .selection-banner button { flex-shrink: 0; background: var(--info-btn-bg); border: 1px solid var(--info-border); color: var(--info-text); padding: 6px 12px; border-radius: 6px; font: inherit; font-weight: 600; cursor: pointer; }
+        .selection-banner button:hover { background: var(--info-btn-hover); }
+        .range-preview { background-color: rgba(55, 136, 216, 0.1) !important; }
+        .mobile-hint { display: none; margin: 0 0 12px 0; color: var(--text-muted); font-size: 0.9rem; }
+
+        /* Night count shown in booking popups */
+        .nights-info { margin: 4px auto 0 auto; width: 85%; text-align: left; font-size: 0.9rem; font-weight: 600; color: var(--primary-blue); min-height: 1.2em; }
+        .nights-info.warn { color: var(--danger); }
+
+        /* Up Next card */
+        .upnext { margin-top: 25px; padding-top: 15px; border-top: 1px solid var(--border-color); }
+        .upnext h3 { margin: 0 0 10px 0; font-size: 1rem; }
+        .upnext-list { list-style: none; padding: 0; margin: 0; }
+        .upnext-list li { display: flex; gap: 10px; align-items: flex-start; padding: 8px; margin: 0 -8px; border-radius: 8px; cursor: pointer; }
+        .upnext-list li:hover { background: var(--hover-bg); }
+        .upnext-list li.upnext-empty { color: var(--text-muted); font-size: 0.9rem; cursor: default; }
+        .upnext-list li.upnext-empty:hover { background: none; }
+        .upnext-list .dot { margin-top: 5px; flex-shrink: 0; }
+        .upnext-name { font-weight: 600; font-size: 0.95rem; }
+        .upnext-dates { color: var(--text-muted); font-size: 0.85rem; margin-top: 2px; }
+        .badge-now { display: inline-block; background: var(--created-bg); color: var(--created-text); font-size: 0.7rem; font-weight: 600; padding: 1px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
+
+        @media (max-width: 850px) { .app-container { flex-direction: column; } .sidebar { flex: 1; width: 100%; box-sizing: border-box; } }
+
+        /* Phones: calendar first, condensed instructions, tighter spacing */
+        @media (max-width: 600px) {
+            body { padding: 16px; }
+            .app-container { gap: 16px; }
+            .calendar-container { order: -1; width: 100%; box-sizing: border-box; padding: 12px; }
+            .sidebar, .changelog-container { padding: 16px; }
+            .changelog-container { margin-top: 16px; }
+            .steps { display: none; }
+            .btn-add { margin-top: 8px; }
+            .mobile-hint { display: block; }
+            .fc .fc-toolbar-title { font-size: 1.15rem; }
+            .fc .fc-toolbar.fc-header-toolbar { margin-bottom: 12px; }
+            .changelog-list li { grid-template-columns: 76px 1fr; column-gap: 10px; row-gap: 4px; }
+            .log-date { grid-column: 1 / -1; }
+        }
+
+        /* Fix FullCalendar Header Alignment */
+        .fc .fc-toolbar.fc-header-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px; /* Adds breathing room if the whole header wraps */
+        }
+
+        .fc .fc-toolbar-chunk {
+            display: flex !important;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px; /* Forces a clean space between 'today' and the arrows */
+        }
+
+        .fc .fc-button {
+            margin: 0 !important; /* Overrides FullCalendar's default margins to prevent staggered stacking */
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <aside class="sidebar">
+        <h2>Book a Stay</h2>
+        <div class="steps">
+            <p><strong>Step 1:</strong> Click your arrival date on the calendar.</p>
+            <p><strong>Step 2:</strong> Click your departure date.</p>
+            <p><strong>Step 3:</strong> Enter your details in the popup.</p>
+        </div>
+
+        <button class="btn-add" id="manualAddBtn">Or Add Dates Manually</button>
+        <button class="btn-secondary" id="subscribeBtn">📅 Add to My Phone's Calendar</button>
+
+        <div class="legend">
+            <div class="legend-item"><div class="dot purple"></div>Both</div>
+            <div class="legend-item"><div class="dot blue"></div>Front</div>
+            <div class="legend-item"><div class="dot green"></div>Back</div>
+        </div>
+
+        <div class="upnext">
+            <h3>Up Next</h3>
+            <ul id="upNextList" class="upnext-list">
+                <li class="upnext-empty">Loading...</li>
+            </ul>
+        </div>
+    </aside>
+
+    <main class="calendar-container">
+        <p class="mobile-hint">Tap your arrival date, then your departure date.</p>
+        <div id="selectionBanner" class="selection-banner" role="status">
+            <span id="selectionText"></span>
+            <button type="button" id="cancelSelection">Cancel</button>
+        </div>
+        <div id="calendarLoading" class="calendar-loading" role="status">Loading bookings…</div>
+        <div id='calendar'></div>
+    </main>
+</div>
+
+<div class="changelog-container">
+    <h3>Recent Activity</h3>
+    <ul id="changelogList" class="changelog-list">
+        <li>Loading activity...</li>
+    </ul>
+    <button class="btn-secondary" id="showMoreLog" style="display: none;">Show more</button>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+
+        let firstClickDate = null;
+        let isPrompting = false;
+        const phoneQuery = window.matchMedia('(max-width: 600px)');
+
+        // --- Helpers ---
+        // Escape user-supplied text before inserting it into HTML
+        function escapeHtml(str) {
+            return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        // Add days to a YYYY-MM-DD string entirely in UTC, so daylight-saving changes can't shift the date
+        function addDays(dateStr, days) {
+            const d = new Date(dateStr.split('T')[0] + 'T00:00:00Z');
+            d.setUTCDate(d.getUTCDate() + days);
+            return d.toISOString().split('T')[0];
+        }
+
+        // Today's local date as YYYY-MM-DD
+        function todayStr() { return new Date().toLocaleDateString('en-CA'); }
+
+        // fetch() that gives up after 15 seconds instead of spinning forever
+        const TIMEOUT_MSG = 'The connection is slow right now. Please try again.';
+        async function fetchWithTimeout(url, options = {}, ms = 15000) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), ms);
+            try {
+                return await fetch(url, { ...options, signal: controller.signal });
+            } catch (err) {
+                throw err.name === 'AbortError' ? new Error(TIMEOUT_MSG) : err;
+            } finally {
+                clearTimeout(timer);
+            }
+        }
+
+        // "Jul 3" style label for a YYYY-MM-DD string
+        function fmtDate(dateStr) {
+            return new Date(dateStr + 'T00:00:00Z').toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
+        }
+
+        // Nights between an arrival and a departure date (both YYYY-MM-DD, departure inclusive as the user picked it)
+        function nightsLabel(arrival, departure) {
+            const n = Math.round((Date.parse(departure + 'T00:00:00Z') - Date.parse(arrival + 'T00:00:00Z')) / 86400000);
+            return n === 0 ? 'day visit' : n === 1 ? '1 night' : `${n} nights`;
+        }
+
+        // Keeps a live night count under a pair of date inputs in a popup
+        function wireNights(startId, endId, outId) {
+            const s = document.getElementById(startId), e = document.getElementById(endId), out = document.getElementById(outId);
+            const update = () => {
+                const bad = s.value && e.value && e.value < s.value;
+                out.classList.toggle('warn', !!bad);
+                out.textContent = !s.value || !e.value ? '' : bad ? 'Departure is before arrival' : 'Stay: ' + nightsLabel(s.value, e.value);
+            };
+            s.addEventListener('input', update);
+            e.addEventListener('input', update);
+            update();
+        }
+
+        const COTTAGE = { both: { dot: 'purple', label: 'Both cottages' }, front: { dot: 'blue', label: 'Front cottage' }, back: { dot: 'green', label: 'Back cottage' } };
+
+        // --- Up Next ---
+        function renderUpNext(bookings) {
+            const list = document.getElementById('upNextList');
+            const today = new Date().toLocaleDateString('en-CA'); // local YYYY-MM-DD
+            const upcoming = bookings.filter(b => b.end > today).sort((a, b) => a.start.localeCompare(b.start)).slice(0, 3);
+
+            if (!upcoming.length) { list.innerHTML = '<li class="upnext-empty">No upcoming stays.</li>'; return; }
+
+            list.innerHTML = upcoming.map(b => {
+                const c = COTTAGE[b.cottage_type] || COTTAGE.both;
+                const now = b.start <= today ? '<span class="badge-now">Now</span>' : '';
+                const departure = addDays(b.end, -1);
+                return `<li data-start="${escapeHtml(b.start)}">
+                        <span class="dot ${c.dot}"></span>
+                        <div>
+                            <div class="upnext-name">${escapeHtml(b.renter_name)}${now}</div>
+                            <div class="upnext-dates">${fmtDate(b.start)} – ${fmtDate(departure)} · ${nightsLabel(b.start, departure)} · ${c.label}</div>
+                        </div>
+                    </li>`;
+            }).join('');
+        }
+
+        document.getElementById('upNextList').addEventListener('click', e => {
+            const item = e.target.closest('li[data-start]');
+            if (!item) return;
+            calendar.gotoDate(item.dataset.start);
+            if (phoneQuery.matches) calendarEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+
+        // --- Arrival/departure selection ---
+        const banner = document.getElementById('selectionBanner');
+        const bannerText = document.getElementById('selectionText');
+
+        // Highlights the arrival day and, while hovering, the range up to the hovered day
+        function paintSelection(hoverDate) {
+            calendarEl.querySelectorAll('.fc-daygrid-day[data-date]').forEach(cell => {
+                const d = cell.dataset.date;
+                const inRange = !!(firstClickDate && hoverDate && d !== firstClickDate &&
+                    ((d > firstClickDate && d <= hoverDate) || (d < firstClickDate && d >= hoverDate)));
+                cell.classList.toggle('first-click-highlight', d === firstClickDate);
+                cell.classList.toggle('range-preview', inRange);
+            });
+
+            if (!firstClickDate) return;
+            let text = `<b>Arrival: ${fmtDate(firstClickDate)}</b> — now tap your departure date.`;
+            if (hoverDate && hoverDate !== firstClickDate) {
+                const [a, b] = hoverDate > firstClickDate ? [firstClickDate, hoverDate] : [hoverDate, firstClickDate];
+                text = `<b>${fmtDate(a)} – ${fmtDate(b)}</b> · ${nightsLabel(a, b)}`;
+            }
+            bannerText.innerHTML = text;
+        }
+
+        function startSelection(dateStr) {
+            firstClickDate = dateStr;
+            banner.classList.add('active');
+            paintSelection(null);
+        }
+
+        function clearSelection() {
+            firstClickDate = null;
+            banner.classList.remove('active');
+            paintSelection(null);
+        }
+
+        document.getElementById('cancelSelection').addEventListener('click', clearSelection);
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && firstClickDate && !Swal.isVisible()) clearSelection(); });
+        calendarEl.addEventListener('mouseover', e => {
+            if (!firstClickDate) return;
+            const cell = e.target.closest('.fc-daygrid-day[data-date]');
+            if (cell) paintSelection(cell.dataset.date);
+        });
+        calendarEl.addEventListener('mouseleave', () => { if (firstClickDate) paintSelection(null); });
+
+        // --- PIN Management ---
+        function getPin() { return sessionStorage.getItem('cottage_pin') || ''; }
+
+        function promptForPin(successCallback) {
+            isPrompting = true;
+            Swal.fire({
+                title: 'Enter Family PIN',
+                input: 'password',
+                inputAttributes: { inputmode: 'numeric', pattern: '[0-9]*' },
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                backdrop: 'rgba(31, 41, 55, 0.98)',
+                confirmButtonText: 'Unlock',
+                confirmButtonColor: '#3788d8',
+                showLoaderOnConfirm: true,
+                preConfirm: (pin) => {
+                    return fetchWithTimeout('api.php?fetch=changelog', { headers: { 'X-App-Pin': pin } })
+                        .then(async response => {
+                            if (response.status === 401) throw new Error('Incorrect PIN');
+                            if (!response.ok) {
+                                // e.g. too many wrong PINs (429), or no PINs set on the server (503)
+                                // Read the detailed error message sent by the PHP Throwable catch block
+                                const errData = await response.json().catch(() => ({}));
+                                throw new Error(errData.message || `HTTP Error ${response.status}`);
+                            }
+                            return pin;
+                        }).catch(error => {
+                            Swal.showValidationMessage(error.message);
+                        });
+                }
+            }).then(result => {
+                if (result.isConfirmed) {
+                    sessionStorage.setItem('cottage_pin', result.value);
+                    isPrompting = false;
+                    if (successCallback) successCallback();
+                }
+            });
+        }
+
+        async function secureFetch(url, options = {}) {
+            options.headers = { ...options.headers, 'X-App-Pin': getPin() };
+            const response = await fetchWithTimeout(url, options);
+
+            // A new install sends everyone to the first-time setup page until it's done
+            if (response.status === 503) {
+                const info = await response.clone().json().catch(() => ({}));
+                if (info.setup) { location.href = 'setup.php'; throw new Error('SETUP_NEEDED'); }
+                if (info.message && !isPrompting) {
+                    isPrompting = true;
+                    Swal.fire({ title: 'Calendar Unavailable', text: info.message, icon: 'error', allowOutsideClick: false, allowEscapeKey: false, showConfirmButton: false });
+                    throw new Error('UNAVAILABLE');
+                }
+            }
+
+            if (response.status === 401) {
+                sessionStorage.removeItem('cottage_pin');
+                throw new Error('401_UNAUTHORIZED');
+            }
+            return response;
+        }
+
+        function handleAuthFailure() {
+            if (!isPrompting) {
+                promptForPin(() => {
+                    calendar.refetchEvents();
+                    refreshChangelog();
+                    // Ping the server to log a silent page view
+                    secureFetch('api.php?action=log_view', { method: 'POST' }).catch(()=>{});
+                });
+            }
+        }
+        // --------------------------------------
+
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            selectable: false,
+            editable: true,
+            height: phoneQuery.matches ? 'auto' : 650,
+            headerToolbar: { left: 'title', right: 'dayGridMonth,listMonth today prev,next' },
+            buttonText: { dayGridMonth: 'Month', listMonth: 'List', today: 'Today' },
+            noEventsContent: 'No stays booked this month.',
+
+            windowResize: function() { calendar.setOption('height', phoneQuery.matches ? 'auto' : 650); },
+
+            // Re-apply the arrival highlight after switching months
+            datesSet: function() { setTimeout(() => paintSelection(null), 0); },
+
+            loading: function(isLoading) { document.getElementById('calendarLoading').classList.toggle('active', isLoading); },
+
+            // Name plus a small cottage badge (colour isn't the only cue); list view spells the cottage out
+            eventContent: function(arg) {
+                const props = arg.event.extendedProps;
+                const name = escapeHtml(props.renter_name);
+                if (arg.view.type.startsWith('list')) {
+                    return { html: `${name}<span class="ev-tag">${(COTTAGE[props.cottage_type] || COTTAGE.both).label}</span>` };
+                }
+                const badge = { front: 'F', back: 'B', both: 'Both' }[props.cottage_type] || '';
+                return { html: `<div class="ev-content"><span class="ev-badge">${badge}</span><span class="ev-name">${name}</span></div>` };
+            },
+
+            // Bookings can't be dragged to start in the past (resizing an ongoing stay is fine)
+            eventAllow: function(dropInfo, draggedEvent) {
+                const newStart = dropInfo.startStr.split('T')[0];
+                return newStart >= todayStr() || newStart === draggedEvent.startStr.split('T')[0];
+            },
+
+            events: function(fetchInfo, successCallback, failureCallback) {
+                secureFetch('api.php')
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network error');
+                        return response.json();
+                    })
+                    .then(data => { successCallback(data); renderUpNext(data); })
+                    .catch(err => {
+                        failureCallback(err);
+                        if (err.message === '401_UNAUTHORIZED') handleAuthFailure();
+                        else if (!Swal.isVisible()) Swal.fire({ toast: true, position: 'bottom-end', icon: 'error', title: "Couldn't load bookings", text: err.message === TIMEOUT_MSG ? TIMEOUT_MSG : 'Please refresh the page.', showConfirmButton: false, timer: 5000 });
+                    });
+            },
+
+            dateClick: function(info) {
+                // Covers both clicks: a departure clicked before a future arrival would also start the stay in the past
+                if (info.dateStr < todayStr()) {
+                    Swal.fire({ toast: true, position: 'bottom-end', icon: 'info', title: "Can't book a date in the past", showConfirmButton: false, timer: 2500 });
+                    return;
+                }
+                if (!firstClickDate) {
+                    // First Click: Arrival
+                    startSelection(info.dateStr);
+                } else {
+                    // Second Click: Departure
+                    let secondClickDate = info.dateStr;
+                    let start = firstClickDate < secondClickDate ? firstClickDate : secondClickDate;
+                    let end = firstClickDate > secondClickDate ? firstClickDate : secondClickDate;
+
+                    clearSelection();
+
+                    // Trigger the new detail collection modal
+                    promptForBookingDetails(start, addDays(end, 1));
+                }
+            },
+
+            eventDrop: updateEventDates,
+            eventResize: updateEventDates,
+
+            eventClick: function(info) {
+                var event = info.event;
+                var props = event.extendedProps;
+
+                let displayStart = event.startStr.split('T')[0];
+                let displayEnd = event.endStr ? addDays(event.endStr, -1) : displayStart;
+
+                Swal.fire({
+                    title: 'Modify Booking',
+                    html: `
+                            <div class="swal-form-row"><label>Renter Name</label><input id="editName" class="swal2-input custom" value="${escapeHtml(props.renter_name)}" autocomplete="off"></div>
+                            <div class="swal-form-row">
+                                <label>Cottage</label>
+                                <select id="editCottage" class="swal2-select custom">
+                                    <option value="both" ${props.cottage_type === 'both' ? 'selected' : ''}>Both Cottages</option>
+                                    <option value="front" ${props.cottage_type === 'front' ? 'selected' : ''}>Front Cottage Only</option>
+                                    <option value="back" ${props.cottage_type === 'back' ? 'selected' : ''}>Back Cottage Only</option>
+                                </select>
+                            </div>
+                            <div class="swal-form-row"><label>Arrival</label><input type="date" id="editStart" class="swal2-input custom" value="${displayStart}"></div>
+                            <div class="swal-form-row"><label>Departure</label><input type="date" id="editEnd" class="swal2-input custom" value="${displayEnd}"></div>
+                            <div id="editNights" class="nights-info"></div>
+                        `,
+                    showDenyButton: true, showCancelButton: true, confirmButtonText: 'Save Details', denyButtonText: 'Delete', confirmButtonColor: '#3788d8', denyButtonColor: '#d33',
+                    didOpen: () => wireNights('editStart', 'editEnd', 'editNights'),
+                    preConfirm: () => {
+                        const name = document.getElementById('editName').value.trim();
+                        const cottage = document.getElementById('editCottage').value;
+                        const start = document.getElementById('editStart').value;
+                        const end = document.getElementById('editEnd').value;
+
+                        if (!name) { Swal.showValidationMessage('Name cannot be blank'); return false; }
+                        if (!start || !end) { Swal.showValidationMessage('Both dates are required'); return false; }
+                        if (end < start) { Swal.showValidationMessage('Departure must be on or after arrival'); return false; }
+                        return { name: name, cottage: cottage, start: start, end: addDays(end, 1) };
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        apiCall('PUT', {
+                            id: event.id, renter_name: result.value.name, cottage_type: result.value.cottage, start_date: result.value.start, end_date: result.value.end
+                        }, 'Booking Updated!');
+
+                    } else if (result.isDenied) {
+                        Swal.fire({
+                            title: 'Delete this stay?',
+                            html: `<b>${escapeHtml(props.renter_name)}</b> · ${(COTTAGE[props.cottage_type] || COTTAGE.both).label}<br>${fmtDate(displayStart)} to ${fmtDate(displayEnd)} · ${nightsLabel(displayStart, displayEnd)}<br><br>This can't be undone.`,
+                            icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Yes, delete it', cancelButtonText: 'Keep it'
+                        }).then((delResult) => {
+                            if (delResult.isConfirmed) apiCall('DELETE', { id: event.id }, 'Booking Deleted!');
+                        });
+                    }
+                });
+            }
+        });
+
+        // The new sequence flow for standard calendar clicking
+        function promptForBookingDetails(startStr, endStr) {
+            // Calculate display dates for the user confirmation prompt
+            const departure = addDays(endStr, -1);
+
+            Swal.fire({
+                title: 'Complete Booking',
+                html: `
+                        <p style="margin-bottom: 15px; font-size: 0.95rem; color: var(--text-muted);"><b>Dates:</b> ${fmtDate(startStr)} to ${fmtDate(departure)} · <b style="color: var(--primary-blue);">${nightsLabel(startStr, departure)}</b></p>
+                        <div class="swal-form-row"><label>Who is booking?</label><input id="newName" class="swal2-input custom" placeholder="e.g., Smith Family" autocomplete="off"></div>
+                        <div class="swal-form-row">
+                            <label>Which cottage?</label>
+                            <select id="newCottage" class="swal2-select custom">
+                                <option value="both">Both Cottages</option>
+                                <option value="front">Front Cottage Only</option>
+                                <option value="back">Back Cottage Only</option>
+                            </select>
+                        </div>
+                    `,
+                showCancelButton: true,
+                confirmButtonText: 'Lock in Dates',
+                confirmButtonColor: '#3788d8',
+                preConfirm: () => {
+                    const name = document.getElementById('newName').value.trim();
+                    const cottage = document.getElementById('newCottage').value;
+                    if (!name) { Swal.showValidationMessage('Please enter a name'); return false; }
+                    return { name: name, cottage: cottage };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    apiCall('POST', {
+                        renter_name: result.value.name,
+                        cottage_type: result.value.cottage,
+                        start_date: startStr,
+                        end_date: endStr
+                    }, 'Booked!');
+                }
+            });
+        }
+
+        // Updated manual button flow
+        document.getElementById('manualAddBtn').addEventListener('click', function() {
+            Swal.fire({
+                title: 'Manual Booking',
+                html: `
+                        <div class="swal-form-row"><label>Who is booking?</label><input id="swalName" class="swal2-input custom" autocomplete="off"></div>
+                        <div class="swal-form-row">
+                            <label>Which cottage?</label>
+                            <select id="swalCottage" class="swal2-select custom">
+                                <option value="both">Both Cottages</option>
+                                <option value="front">Front Cottage Only</option>
+                                <option value="back">Back Cottage Only</option>
+                            </select>
+                        </div>
+                        <div class="swal-form-row" style="flex-direction: row; gap: 10px;">
+                            <div style="flex: 1;"><label>Arrival</label><input type="date" id="swalStart" class="swal2-input custom" min="${todayStr()}"></div>
+                            <div style="flex: 1;"><label>Departure</label><input type="date" id="swalEnd" class="swal2-input custom"></div>
+                        </div>
+                        <div id="swalNights" class="nights-info"></div>
+                    `,
+                confirmButtonText: 'Book',
+                showCancelButton: true,
+                didOpen: () => wireNights('swalStart', 'swalEnd', 'swalNights'),
+                preConfirm: () => {
+                    const name = document.getElementById('swalName').value.trim();
+                    const cottage = document.getElementById('swalCottage').value;
+                    const start = document.getElementById('swalStart').value;
+                    const end = document.getElementById('swalEnd').value;
+
+                    if (!name) { Swal.showValidationMessage('Name is required'); return false; }
+                    if (!start || !end) { Swal.showValidationMessage('Both dates are required'); return false; }
+                    if (start < todayStr()) { Swal.showValidationMessage("Arrival can't be in the past"); return false; }
+                    if (end < start) { Swal.showValidationMessage('Departure must be on or after arrival'); return false; }
+
+                    return { name: name, cottage: cottage, start: start, end: addDays(end, 1) };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    apiCall('POST', { renter_name: result.value.name, cottage_type: result.value.cottage, start_date: result.value.start, end_date: result.value.end }, 'Booked!');
+                }
+            });
+        });
+
+        // Drag/resize: confirm first, and snap the booking back if cancelled or the save fails
+        function updateEventDates(info) {
+            const props = info.event.extendedProps;
+            const start = info.event.startStr.split('T')[0];
+            const end = info.event.endStr ? info.event.endStr.split('T')[0] : addDays(start, 1);
+            const departure = addDays(end, -1);
+
+            Swal.fire({
+                title: 'Move Booking?',
+                html: `<b>${escapeHtml(props.renter_name)}</b><br>${fmtDate(start)} to ${fmtDate(departure)} · ${nightsLabel(start, departure)}`,
+                icon: 'question', showCancelButton: true, confirmButtonText: 'Yes, move it', confirmButtonColor: '#3788d8'
+            }).then(result => {
+                if (!result.isConfirmed) { info.revert(); return; }
+                apiCall('PUT', {
+                    id: info.event.id, renter_name: props.renter_name, cottage_type: props.cottage_type, start_date: start, end_date: end
+                }, 'Booking Moved!', info.revert);
+            });
+        }
+
+        // --- Recent Activity ---
+        let changelogLimit = 20;
+        let changelogData = [];
+        const showMoreBtn = document.getElementById('showMoreLog');
+
+        // "5 minutes ago", "yesterday", then a plain date after a week
+        function relativeTime(unix) {
+            const diff = Date.now() / 1000 - unix;
+            const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+            if (diff < 60) return 'just now';
+            if (diff < 3600) return rtf.format(-Math.floor(diff / 60), 'minute');
+            if (diff < 86400) return rtf.format(-Math.floor(diff / 3600), 'hour');
+            if (diff < 7 * 86400) return rtf.format(-Math.floor(diff / 86400), 'day');
+            const d = new Date(unix * 1000);
+            const opts = { month: 'short', day: 'numeric' };
+            if (d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
+            return d.toLocaleDateString(undefined, opts);
+        }
+
+        // Log text stores raw ranges like "2026-10-17 to 2026-10-22" where the second date is the day
+        // after departure; show them as "Oct 17 – 21" (departure day), adding the year only when it isn't this year
+        function prettifyLogDates(text) {
+            const thisYear = String(new Date().getFullYear());
+            const label = (d, withMonth) => {
+                const opts = { day: 'numeric', timeZone: 'UTC' };
+                if (withMonth) opts.month = 'short';
+                return new Date(d + 'T00:00:00Z').toLocaleDateString(undefined, opts);
+            };
+            return String(text ?? '')
+                .replace(/\[?(\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})\]?/g, (m, start, endExcl) => {
+                    const end = addDays(endExcl, -1) < start ? start : addDays(endExcl, -1);
+                    const year = start.slice(0, 4) !== thisYear ? ', ' + start.slice(0, 4) : '';
+                    if (start === end) return label(start, true) + year;
+                    const sameMonth = start.slice(0, 7) === end.slice(0, 7);
+                    return `${label(start, true)} – ${label(end, !sameMonth)}${year}`;
+                });
+        }
+
+        function renderChangelog() {
+            const list = document.getElementById('changelogList');
+            if (!changelogData.length) {
+                list.innerHTML = '<li class="log-empty">No recent activity.</li>';
+                return;
+            }
+            list.innerHTML = changelogData.map(log => {
+                const dateObj = new Date(log.unix_time * 1000);
+                const full = dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + dateObj.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+                const action = escapeHtml(log.action);
+                return `<li><span class="log-date" title="${escapeHtml(full)}">${relativeTime(log.unix_time)}</span> <span class="log-action action-${action}">${action}</span><span class="log-details">${escapeHtml(prettifyLogDates(log.details))}</span></li>`;
+            }).join('');
+        }
+
+        function refreshChangelog() {
+            secureFetch(`api.php?fetch=changelog&limit=${changelogLimit}`)
+                .then(res => res.json())
+                .then(response => {
+                    changelogData = response.status === 'success' ? response.data : [];
+                    showMoreBtn.style.display = response.has_more ? 'block' : 'none';
+                    renderChangelog();
+                }).catch(err => {
+                if (err.message === '401_UNAUTHORIZED') handleAuthFailure();
+            });
+        }
+
+        showMoreBtn.addEventListener('click', () => {
+            changelogLimit += 20;
+            document.getElementById('changelogList').style.maxHeight = 'none';
+            refreshChangelog();
+        });
+
+        // Keep "5 minutes ago" labels current
+        setInterval(renderChangelog, 60000);
+
+        // --- Calendar subscription ---
+        document.getElementById('subscribeBtn').addEventListener('click', () => {
+            const feedUrl = location.origin + location.pathname.replace(/[^/]*$/, '') + 'ical.php';
+            Swal.fire({
+                title: 'Add to Your Calendar',
+                html: `
+                    <div class="sub-steps">
+                        <p style="margin-top: 0;">Bookings will show up in your own calendar app and stay in sync on their own.</p>
+                        <div class="sub-url"><input id="feedUrl" readonly value="${escapeHtml(feedUrl)}"><button id="copyFeed" type="button">Copy</button></div>
+                        <h4>iPhone or iPad</h4>
+                        <ol>
+                            <li>Copy the link above.</li>
+                            <li>Open <b>Settings → Apps → Calendar → Calendar Accounts</b> (older iPhones: <b>Settings → Calendar → Accounts</b>).</li>
+                            <li>Tap <b>Add Account → Other → Add Subscribed Calendar</b>, paste the link, and tap <b>Next</b>.</li>
+                            <li>Enter the calendar username and password, then tap <b>Save</b>.</li>
+                        </ol>
+                        <h4>Mac</h4>
+                        <ol>
+                            <li>In the Calendar app, choose <b>File → New Calendar Subscription</b>.</li>
+                            <li>Paste the link, then enter the username and password when asked.</li>
+                        </ol>
+                        <p>The calendar username and password are different from the family PIN. Ask whoever manages this site if you don't have them. Google Calendar and Outlook.com can't subscribe to password-protected calendars.</p>
+                    </div>
+                `,
+                confirmButtonText: 'Done',
+                confirmButtonColor: '#3788d8',
+                didOpen: () => {
+                    const input = document.getElementById('feedUrl');
+                    const btn = document.getElementById('copyFeed');
+                    btn.addEventListener('click', async () => {
+                        try { await navigator.clipboard.writeText(input.value); }
+                        catch { input.select(); document.execCommand('copy'); }
+                        btn.textContent = 'Copied!';
+                        setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+                    });
+                }
+            });
+        });
+
+        function apiCall(method, payload, successMsg, onFailure) {
+            Swal.fire({
+                title: 'Processing...', text: 'Please wait', allowOutsideClick: false, allowEscapeKey: false, showConfirmButton: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            secureFetch('api.php', { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+                .then(async response => {
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        throw new Error(errData.message || `HTTP Error ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        calendar.refetchEvents();
+                        refreshChangelog();
+                        if (successMsg) Swal.fire({ title: successMsg, icon: 'success', timer: 1500, showConfirmButton: false });
+                        else Swal.close();
+                    } else throw new Error(data.message || 'Unknown error');
+                })
+                .catch(error => {
+                    console.error("API Call Failed:", error);
+                    if (onFailure) onFailure();
+                    if (error.message === '401_UNAUTHORIZED') {
+                        handleAuthFailure();
+                    } else if (error.message === TIMEOUT_MSG) {
+                        // The save may still have gone through, so reload to show what's really there
+                        calendar.refetchEvents();
+                        refreshChangelog();
+                        Swal.fire('Connection Problem', TIMEOUT_MSG + " If your change went through, it will appear on the calendar in a moment.", 'warning');
+                    } else {
+                        Swal.fire("Couldn't Save", error.message, 'error');
+                    }
+                });
+        }
+
+        calendar.render();
+        refreshChangelog();
+        secureFetch('api.php?action=log_view', { method: 'POST' }).catch(()=>{});
+    });
+</script>
+</body>
+</html>

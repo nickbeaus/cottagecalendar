@@ -1,0 +1,10 @@
+.env
+.env.*
+*.sqlite*
+*.bak
+data/
+tests/
+app/vendor/
+README.md
+.git
+.github/

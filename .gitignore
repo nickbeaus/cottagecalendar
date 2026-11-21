@@ -1,0 +1,15 @@
+# Real settings and secrets: only .env.example belongs in git
+.env
+.env.*
+!.env.example
+
+# Installed by Composer when the image is built
+app/vendor/
+
+# Data: database files, backups, exports (they contain names and IP addresses)
+data/
+*.sqlite
+*.sqlite-*
+*.bak
+*.json
+!app/composer.json
